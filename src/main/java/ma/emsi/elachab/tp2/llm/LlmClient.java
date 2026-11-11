@@ -3,7 +3,7 @@ package ma.emsi.elachab.tp2.llm;
 import dev.langchain4j.data.message.SystemMessage;
 import dev.langchain4j.memory.ChatMemory;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
-import dev.langchain4j.model.chat.ChatModel;
+import dev.langchain4j.model.chat.ChatLanguageModel;
 import dev.langchain4j.model.googleai.GoogleAiGeminiChatModel;
 import dev.langchain4j.service.AiServices;
 import jakarta.enterprise.context.Dependent;
@@ -17,14 +17,14 @@ public class LlmClient implements Serializable {
     private ChatMemory chatMemory;
 
     public LlmClient() {
-        // 1. Récupération de la clé API depuis l'environnement
+        // 1. Récupération de la clé API depuis la variable d'environnement GEMINI_KEY
         String apiKey = System.getenv("GEMINI_KEY");
         if (apiKey == null || apiKey.isEmpty()) {
             apiKey = System.getenv("GEMINI_API_KEY");
         }
 
         // 2. Création du modèle Gemini
-        ChatModel model = GoogleAiGeminiChatModel.builder()
+        ChatLanguageModel model = GoogleAiGeminiChatModel.builder()
                 .apiKey(apiKey)
                 .modelName("gemini-1.5-flash")
                 .build();
@@ -34,14 +34,14 @@ public class LlmClient implements Serializable {
 
         // 4. Création de l'assistant via AiServices
         this.assistant = AiServices.builder(Assistant.class)
-                .chatModel(model)
+                .chatLanguageModel(model)
                 .chatMemory(chatMemory)
                 .build();
     }
 
     public String envoyer(String prompt) {
         if (prompt == null || prompt.trim().isEmpty()) {
-            return "Veuillez saisir une question.";
+            return "";
         }
         return assistant.chat(prompt);
     }
@@ -49,9 +49,8 @@ public class LlmClient implements Serializable {
     public void setSystemRole(String systemRole) {
         this.systemRole = systemRole;
         if (systemRole != null && !systemRole.trim().isEmpty()) {
-            // Réinitialise la mémoire et injecte le rôle système
-            chatMemory.clear();
-            chatMemory.add(new SystemMessage(systemRole));
+            // Ajout du rôle système dans la mémoire de conversation
+            this.chatMemory.add(SystemMessage.from(systemRole));
         }
     }
 
